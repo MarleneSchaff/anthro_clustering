@@ -35,7 +35,6 @@ if __name__ == "__main__":
 		for file in files:
 			print(file)
 			with gzip.open(os.path.join(root, file), "r") as f_in, gzip.open(os.path.join(root, file), "r") as file_in, gzip.open(os.path.join(args.output_dir, file), "wb") as v_out:
-				#try:
 				word_json = [json.loads(line)["word"] for line in f_in]
 				score_json = [json.loads(line)["score"] for line in file_in]
 				df = pd.DataFrame()
@@ -43,16 +42,16 @@ if __name__ == "__main__":
 				df["score"] = pd.to_numeric(df["score"], errors="coerce")
 				pre_vector = []
 				for word in dec_labels:
-					if word in df["word"]:
+					if word in df["word"].values:
 						print(word)
 						slot = np.where(dec_labels == word)[0][0]
-						pre_vector.insert(slot, df[df["word"] == word]["score"])
+						pre_vector.insert(slot, df[df["word"] == word]["score"].values[0])
 					else:
+#						print(word)
 						slot = np.where(dec_labels == word)[0][0]
 						pre_vector.insert(slot, 0)
-				anthro_vector = np.array(pre_vector)
-				print(anthro_vector)
+				print(pre_vector)
+				anthro_vector = np.array([pre_vector])
+#				print(anthro_vector)
 				np.save(v_out, anthro_vector)
 				pickle.dump(anthro_vector, v_out)
-#				except:
-#					print("gzip error")
