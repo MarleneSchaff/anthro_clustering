@@ -2,6 +2,7 @@ import argparse
 import json
 import gzip
 import os
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
 import pickle
@@ -16,37 +17,42 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
+	count_list = []
 	with gzip.open(args.counts_in, "rt") as c_in:
 		for line in c_in:
 			jcounts = json.loads(line)
-			count_list = sorted(jcounts, key=lambda x: x["count"], reverse=True)
+			count_list.append({"word": jcounts["word"], "count": jcounts["count"]})
 
 	counts_df = pd.DataFrame(count_list)
-	counts_df.sort_values("count", ascending=False)
-	counts_df.iloc[:1000, df.columns.get_loc("word")]
+	counts_df = counts_df.sort_values(by=["count"], ascending=False)
+	counts_df.drop_duplicates(subset=["count"], inplace=True)
+	counts_df = counts_df.head(512)
 
-	for word in counts_df["word"]:
-		enc_labels = le.fit_transform(word)
-
+	enc_labels = le.fit_transform(counts_df["word"])
 	dec_labels = le.inverse_transform(enc_labels)
-	print(dec_labels)
 
-	for directory, files in os.walk(args.input_dir):
+	for root, directory, files in os.walk(args.input_dir):
 		for file in files:
 			print(file)
-			with gzip.open(os.path.join(directory, file), "r") as f_in, gzip.open(os.path.join(args.output_dir, file), "wb") as v_out:
-				jline = json.loads(line)
+			with gzip.open(os.path.join(root, file), "r") as f_in, gzip.open(os.path.join(root, file), "r") as file_in, gzip.open(os.path.join(args.output_dir, file), "wb") as v_out:
+				#try:
+				word_json = [json.loads(line)["word"] for line in f_in]
+				score_json = [json.loads(line)["score"] for line in file_in]
+				df = pd.DataFrame()
+				df = df.assign(word = word_json, score = score_json)
+				df["score"] = pd.to_numeric(df["score"], errors="coerce")
 				pre_vector = []
-#				for word in le.inverse_transform(enc_labels):
 				for word in dec_labels:
-					if jline["word"] == word:
-						slot = dec_labels.index(word)
-						pre_vector.insert(slot, word)
-						np.array([pre_vector])
-						#index of score is le.transform()
-						#this needs to 
-							#anthro_vector = np.array([#?])
-						np.save(v_out, anthro_vector)
-						pickle.dump(anthro_vector, v_out)
-
-#reverse get words from le, put score of word in respective index position
+					if word in df["word"]:
+						print(word)
+						slot = np.where(dec_labels == word)[0][0]
+						pre_vector.insert(slot, df[df["word"] == word]["score"])
+					else:
+						slot = np.where(dec_labels == word)[0][0]
+						pre_vector.insert(slot, 0)
+				anthro_vector = np.array(pre_vector)
+				print(anthro_vector)
+				np.save(v_out, anthro_vector)
+				pickle.dump(anthro_vector, v_out)
+#				except:
+#					print("gzip error")

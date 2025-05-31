@@ -26,5 +26,5 @@ if __name__ == "__main__":
 	print("second part")
 	with gzip.open(args.counts, "wt") as c_out:
 		for something in anthrodict:
-			c_out.write(json.dumps({"word": something["word"], "count": c[something["word"]]}))
+			c_out.write(json.dumps({"word": something["word"], "count": c[something["word"]]}) + "\n")
 			print(c[something["word"]])
